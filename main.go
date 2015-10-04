@@ -77,7 +77,7 @@ func initialCrawl() {
 		oldestTweetId, _ = strconv.ParseInt(lines[0][0], 10, 64)
 		log.Printf("Starting crawl from %d\n", oldestTweetId)
 
-		afterLastTimeTweets, err := multiCrawl(-1, oldestTweetId)
+		afterLastTimeTweets, err := multiCrawl(-1, oldestTweetId, true)
 
 		if err != nil {
 			log.Println(err)
@@ -90,7 +90,7 @@ func initialCrawl() {
 	} else {
 		log.Println("Fresh Crawl")
 
-		beforeNowTweets, err := multiCrawl(-1, -1)
+		beforeNowTweets, err := multiCrawl(-1, -1, false)
 		if err != nil {
 			log.Println(err)
 		}
@@ -103,7 +103,7 @@ func initialCrawl() {
 	//Interval crawl
 	t := time.NewTicker(time.Duration(5) * time.Minute)
 	for {
-		intervalTweets, err := multiCrawl(-1, oldestTweetId)
+		intervalTweets, err := multiCrawl(-1, oldestTweetId, true)
 		if err != nil {
 			log.Println(err)
 		}
@@ -114,7 +114,7 @@ func initialCrawl() {
 }
 
 //Crawl tweets with max_id or since_id until finished. Crawls 200 at a time and returns everything.
-func multiCrawl(max_id, since_id int64) ([][]string, error) {
+func multiCrawl(max_id, since_id int64, appendTop bool) ([][]string, error) {
 	allTweets := make([][]string, 0)
 	tweets, err := crawl(max_id, since_id)
 	if err != nil {
@@ -122,8 +122,12 @@ func multiCrawl(max_id, since_id int64) ([][]string, error) {
 		return [][]string{}, err
 	}
 
-	for len(tweets) > 1 {
-		allTweets = append(allTweets, tweets...)
+	for len(tweets) > 0 {
+		if appendTop {
+			allTweets = append(tweets, allTweets...)
+		} else {
+			allTweets = append(allTweets, tweets...)
+		}
 		if since_id != -1 {
 			oldestTweetId, _ = strconv.ParseInt(allTweets[0][0], 10, 64)
 			tweets, err = crawl(-1, oldestTweetId)
@@ -137,6 +141,10 @@ func multiCrawl(max_id, since_id int64) ([][]string, error) {
 			continue
 		}
 		log.Printf("[MULTI-CRAWLER] Progress: %d tweets retrieved\n", len(allTweets))
+
+		if len(tweets) == 1 {
+			break
+		}
 	}
 
 	return allTweets, nil
@@ -177,7 +185,7 @@ func saveCrawls(tweets [][]string) {
 
 	file.Close()
 
-	lines = append(lines, tweets...)
+	lines = append(tweets, lines...)
 
 	file, err = os.Create(cfg.TweetsFileName)
 	if err != nil {
