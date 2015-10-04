@@ -1,30 +1,25 @@
 package main
 
 import (
-	"log"
-	"os"
 	"encoding/csv"
-	"net/url"
-	"fmt"
-	"strconv"
-	"github.com/ChimeraCoder/anaconda"
-	"time"
 	"encoding/json"
+	"fmt"
+	"github.com/ChimeraCoder/anaconda"
 	"io/ioutil"
+	"log"
+	"net/url"
+	"os"
+	"strconv"
+	"time"
 )
-
-type savedtweet struct {
-	id int
-	tweetString string
-	tweetedDate string
-}
 
 type Config struct {
 	TweetsFileName string `json:"tweetsFileName"`
-	ConsumerKey string `json:"consumerKey"`
+	ConsumerKey    string `json:"consumerKey"`
 	ConsumerSecret string `json:"consumerSecret"`
-	AccessKey string `json:"accessKey"`
-	AccessSecret string `json:"accessSecret"`
+	AccessKey      string `json:"accessKey"`
+	AccessSecret   string `json:"accessSecret"`
+	TargetUsername string `json:"targetUsername"`
 }
 
 var oldestTweetId int64 = -1
@@ -52,7 +47,7 @@ func main() {
 		newFile.Close()
 	}
 
-	params.Set("screen_name", "ShintaroTay")
+	params.Set("screen_name", cfg.TargetUsername)
 	params.Add("count", strconv.Itoa(200)) // maximum of 200 tweets per request
 
 	initialCrawl()
@@ -74,7 +69,7 @@ func initialCrawl() {
 	file.Close()
 
 	if len(lines) > 0 {
-		lastTweetIdString := lines[len(lines) - 1][0]
+		lastTweetIdString := lines[len(lines)-1][0]
 
 		if s, err := strconv.ParseInt(lastTweetIdString, 10, 64); err == nil {
 			oldestTweetId = s
@@ -114,7 +109,7 @@ func initialCrawl() {
 		}
 		saveCrawls(intervalTweets)
 		log.Printf("[INTERVAL CRAWL] %d tweets in total were retrieved\n", len(intervalTweets))
-		<- t.C
+		<-t.C
 	}
 }
 
@@ -133,14 +128,14 @@ func multiCrawl(max_id, since_id int64) ([][]string, error) {
 			oldestTweetId, _ = strconv.ParseInt(allTweets[0][0], 10, 64)
 			tweets, err = crawl(-1, oldestTweetId)
 		} else {
-			oldestTweetId, _ = strconv.ParseInt(allTweets[len(allTweets) - 1][0], 10, 64)
+			oldestTweetId, _ = strconv.ParseInt(allTweets[len(allTweets)-1][0], 10, 64)
 			tweets, err = crawl(oldestTweetId, -1)
 		}
-		
+
 		if err != nil {
- 			log.Println(err)
- 			continue
- 		}
+			log.Println(err)
+			continue
+		}
 		log.Printf("[MULTI-CRAWLER] Progress: %d tweets retrieved\n", len(allTweets))
 	}
 
@@ -163,7 +158,7 @@ func crawl(max_id, since_id int64) ([][]string, error) {
 		return [][]string{}, err
 	}
 
-	return parseToString2dArray(tweets), nil	
+	return parseToString2dArray(tweets), nil
 }
 
 //Saves new tweets. Appends to existing tweets.
@@ -203,7 +198,7 @@ func saveCrawls(tweets [][]string) {
 }
 
 //Parses anaconda library tweets into a 2d array
-func parseToString2dArray(tweets []anaconda.Tweet) ([][]string) {
+func parseToString2dArray(tweets []anaconda.Tweet) [][]string {
 	newTweetStringsArray := make([][]string, len(tweets))
 	for i, tweet := range tweets {
 		newTweetStringsArray[i] = []string{tweet.IdStr, tweet.Text, tweet.CreatedAt}
