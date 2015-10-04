@@ -3,5 +3,6 @@
 	"consumerKey" : "",
 	"consumerSecret" : "",
 	"accessKey" : "",
-	"accessSecret" : ""
+	"accessSecret" : "",
+	"targetUsername" : ""
 }
